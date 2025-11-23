@@ -1,0 +1,216 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-heart text-danger"></i> Избранные посты
+                </h4>
+                <span class="badge bg-primary">{{ posts.count }} постов</span>
+            </div>
+
+            <!-- Панель фильтров -->
+            <div class="card-body border-bottom">
+                <form method="get" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Научная область</label>
+                        <select name="scientific_field" class="form-select">
+                            <option value="">Все области</option>
+                            {% for field in scientific_fields %}
+                                <option value="{{ field.id }}"
+                                    {% if current_field == field.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ field.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Тип публикации</label>
+                        <select name="post_type" class="form-select">
+                            <option value="">Все типы</option>
+                            <option value="article" {% if current_post_type == "article" %}selected{% endif %}>Исследовательская статья</option>
+                            <option value="preprint" {% if current_post_type == "preprint" %}selected{% endif %}>Препринт</option>
+                            <option value="question" {% if current_post_type == "question" %}selected{% endif %}>Вопрос</option>
+                            <option value="discussion" {% if current_post_type == "discussion" %}selected{% endif %}>Обсуждение</option>
+                            <option value="news" {% if current_post_type == "news" %}selected{% endif %}>Новость</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary me-2">Применить фильтры</button>
+                        <a href="{% url 'posts:favourite_posts' %}" class="btn btn-outline-secondary">Сбросить</a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card-body">
+                {% if posts %}
+                    {% for post in posts %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <!-- Заголовок и мета-информация -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title">
+                                        <a href="{% url 'posts:post_detail' post.id %}" class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted mb-0">
+                                        <strong>
+                                            <a href="{% url 'users:user_profile' post.author.username %}" class="text-decoration-none">
+                                                {{ post.author.get_full_name|default:post.author.username }}
+                                            </a>
+                                        </strong>
+                                        • {{ post.created_at|date:"d.m.Y H:i" }}
+                                        • <span class="badge bg-secondary">{{ post.get_post_type_display }}</span>
+
+                                        {% if post.community %}
+                                        • в
+                                        <a href="{% url 'communities:community_detail' post.community.id %}" class="text-decoration-none">
+                                            {{ post.community.name }}
+                                        </a>
+                                        {% endif %}
+                                    </p>
+                                </div>
+
+                                <!-- Кнопка избранного -->
+                                <button class="btn btn-sm btn-success favourite-btn"
+                                        data-post-id="{{ post.id }}"
+                                        title="Удалить из избранного">
+                                    <i class="fas fa-bookmark"></i>
+                                    <span class="favourite-count ms-1">{{ post.favourite_count }}</span>
+                                </button>
+                            </div>
+
+                            <!-- Содержание поста -->
+                            <p class="card-text">{{ post.content|urlize|linebreaksbr|truncatewords:50 }}</p>
+
+                            {% if post.scientific_field %}
+                            <p class="text-muted">
+                                <small>Научная область: {{ post.scientific_field.name }}</small>
+                            </p>
+                            {% endif %}
+
+                            <!-- Действия -->
+                            <div class="d-flex gap-3 mt-3">
+                                <button class="btn btn-outline-primary btn-sm like-btn" data-post-id="{{ post.id }}">
+                                    ❤️ <span class="like-count">{{ post.like_count }}</span>
+                                </button>
+                                <a href="{% url 'posts:post_detail' post.id %}" class="btn btn-outline-secondary btn-sm">
+                                    💬 {{ post.comment_count }} комментариев
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-heart fa-4x"></i>
+                        </div>
+                        <h5 class="text-muted">Нет избранных постов</h5>
+                        <p class="text-muted">
+                            Добавляйте посты в избранное, чтобы вернуться к ним позже
+                        </p>
+                        <div class="mt-3">
+                            <a href="{% url 'posts:news_feed' %}" class="btn btn-primary">Перейти к ленте новостей</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// AJAX для избранного - ИСПРАВЛЕННЫЙ КОД
+document.addEventListener('DOMContentLoaded', function() {
+    const favouriteButtons = document.querySelectorAll('.favourite-btn');
+
+    favouriteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const favouriteCount = this.querySelector('.favourite-count');
+            const card = this.closest('.card');
+
+            fetch(`/posts/favourite/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data); // Для отладки
+
+                if (data.status === 'removed') {
+                    // Анимация удаления
+                    card.style.opacity = '0.5';
+                    setTimeout(() => {
+                        card.remove();
+
+                        // Обновляем счетчик в заголовке
+                        const badge = document.querySelector('.badge.bg-primary');
+                        if (badge) {
+                            const currentCount = parseInt(badge.textContent);
+                            badge.textContent = (currentCount - 1) + ' постов';
+                        }
+
+                        // Если постов не осталось, показываем сообщение
+                        if (document.querySelectorAll('.card.mb-4').length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при удалении из избранного');
+            });
+        });
+    });
+
+    // AJAX для лайков (если нужно)
+    const likeButtons = document.querySelectorAll('.like-btn');
+
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const likeCount = this.querySelector('.like-count');
+
+            fetch(`/posts/${postId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.liked) {
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                } else {
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-outline-primary');
+                }
+                likeCount.textContent = data.like_count;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

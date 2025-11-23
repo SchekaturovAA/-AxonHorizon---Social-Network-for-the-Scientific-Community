@@ -1,0 +1,55 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-users text-success"></i> Создать групповой чат
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger">
+                                {% for error in field.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Добавить участников</label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            {% for friend in friends %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="users" value="{{ friend.id }}" id="user_{{ friend.id }}">
+                                <label class="form-check-label" for="user_{{ friend.id }}">
+                                    {{ friend.get_full_name|default:friend.username }}
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">У вас пока нет друзей для добавления в чат</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Создать групповой чат</button>
+                        <a href="{% url 'chats:chat_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

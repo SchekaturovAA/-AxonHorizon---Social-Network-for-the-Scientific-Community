@@ -1,0 +1,254 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">
+                    Лента новостей
+                    {% if community_count %}
+                    <small class="text-muted">({{ community_count }} сообществ)</small>
+                    {% endif %}
+                </h4>
+                <div>
+                    <a href="{% url 'posts:favourite_posts' %}" class="btn btn-outline-danger btn-sm me-2">
+                        <i class="fas fa-heart"></i> Избранное
+                    </a>
+                    <a href="{% url 'communities:community_list' %}" class="btn btn-outline-primary btn-sm">Найти сообщества</a>
+                </div>
+            </div>
+
+            <!-- Панель фильтров -->
+            <div class="card-body border-bottom">
+                <div class="btn-group" role="group" aria-label="Фильтры ленты">
+                    <a href="?type=all" class="btn btn-sm {% if content_type == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        Все посты
+                    </a>
+                    <a href="?type=communities" class="btn btn-sm {% if content_type == 'communities' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        Из сообществ
+                    </a>
+                    {% if has_friends %}
+                    <a href="?type=friends" class="btn btn-sm {% if content_type == 'friends' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        От друзей
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Статистика фильтра -->
+                <div class="mt-2 small text-muted">
+                    {% if content_type == 'all' %}
+                        Показаны все посты из ваших сообществ и от друзей
+                    {% elif content_type == 'communities' %}
+                        Показаны только посты из ваших сообществ
+                    {% elif content_type == 'friends' %}
+                        Показаны только посты от ваших друзей
+                    {% endif %}
+                    • Всего: {{ page_obj.paginator.count }} постов
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if page_obj %}
+                    {% for post in page_obj %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <!-- Заголовок и мета-информация -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title">
+                                        <a href="{% url 'posts:post_detail' post.id %}" class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="text-muted mb-0">
+                                        <strong>
+                                            <a href="{% url 'users:user_profile' post.author.username %}" class="text-decoration-none">
+                                                {{ post.author.get_full_name|default:post.author.username }}
+                                            </a>
+                                        </strong>
+                                        • {{ post.created_at|date:"d.m.Y H:i" }}
+                                        • <span class="badge bg-secondary">{{ post.get_post_type_display }}</span>
+
+                                        {% if post.community %}
+                                        • в
+                                        <a href="{% url 'communities:community_detail' post.community.id %}" class="text-decoration-none">
+                                            {{ post.community.name }}
+                                        </a>
+                                        {% endif %}
+                                    </p>
+                                </div>
+
+                                <!-- Кнопка избранного -->
+                                <button class="btn btn-sm {% if post.id in user_favourite_ids %}btn-success{% else %}btn-outline-success{% endif %} favourite-btn"
+                                        data-post-id="{{ post.id }}"
+                                        title="{% if post.id in user_favourite_ids %}Удалить из избранного{% else %}Добавить в избранное{% endif %}">
+                                    <i class="{% if post.id in user_favourite_ids %}fas{% else %}far{% endif %} fa-bookmark"></i>
+                                    <span class="favourite-count ms-1">{{ post.favourite_count }}</span>
+                                </button>
+                            </div>
+
+                            <!-- Содержание поста -->
+                            <p class="card-text">{{ post.content|urlize|linebreaksbr }}</p>
+
+                            {% if post.scientific_field %}
+                            <p class="text-muted">
+                                <small>Научная область: {{ post.scientific_field.name }}</small>
+                            </p>
+                            {% endif %}
+
+                            <!-- Действия -->
+                            <div class="d-flex gap-3 mt-3">
+                                <button class="btn btn-outline-primary btn-sm like-btn" data-post-id="{{ post.id }}">
+                                    ❤️ <span class="like-count">{{ post.like_count }}</span>
+                                </button>
+                                <a href="{% url 'posts:post_detail' post.id %}" class="btn btn-outline-secondary btn-sm">
+                                    💬 {{ post.comment_count }} комментариев
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Пагинация -->
+                    {% if page_obj.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?type={{ content_type }}&page={{ page_obj.previous_page_number }}">Назад</a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?type={{ content_type }}&page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?type={{ content_type }}&page={{ page_obj.next_page_number }}">Вперед</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-newspaper fa-4x"></i>
+                        </div>
+                        <h5 class="text-muted">Ваша лента пуста</h5>
+                        <p class="text-muted">
+                            {% if content_type == 'communities' %}
+                                Вы не состоите в сообществах или в ваших сообществах нет публикаций
+                            {% elif content_type == 'friends' %}
+                                У вас нет друзей или ваши друзья еще не публиковали посты
+                            {% else %}
+                                Подпишитесь на сообщества и добавьте друзей, чтобы видеть их публикации здесь
+                            {% endif %}
+                        </p>
+                        <div class="mt-3">
+                            <a href="{% url 'communities:community_list' %}" class="btn btn-primary me-2">Найти сообщества</a>
+                            <a href="{% url 'users:search_users' %}" class="btn btn-outline-primary">Найти друзей</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// AJAX для лайков
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButtons = document.querySelectorAll('.like-btn');
+
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const likeCount = this.querySelector('.like-count');
+
+            fetch(`/posts/${postId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.liked) {
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                } else {
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-outline-primary');
+                }
+                likeCount.textContent = data.like_count;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+
+    // AJAX для избранного - ИСПРАВЛЕННЫЙ КОД
+    const favouriteButtons = document.querySelectorAll('.favourite-btn');
+
+    favouriteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const favouriteCount = this.querySelector('.favourite-count');
+            const icon = this.querySelector('i');
+
+            fetch(`/posts/favourite/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data); // Для отладки
+
+                if (data.status === 'added') {
+                    // Если добавлено в избранное
+                    this.classList.remove('btn-outline-success');
+                    this.classList.add('btn-success');
+                    icon.classList.replace('far', 'fas');
+                    this.title = 'Удалить из избранного';
+                } else if (data.status === 'removed') {
+                    // Если удалено из избранного
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-success');
+                    icon.classList.replace('fas', 'far');
+                    this.title = 'Добавить в избранное';
+                }
+                // Обновляем счетчик избранного
+                if (favouriteCount) {
+                    favouriteCount.textContent = data.favourite_count;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при добавлении в избранное');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

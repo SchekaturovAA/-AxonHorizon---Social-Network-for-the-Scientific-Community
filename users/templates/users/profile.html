@@ -1,0 +1,218 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <!-- Блок профиля -->
+        <div class="card">
+            <div class="card-body text-center">
+                {% if user.profile.avatar %}
+                    <img src="{{ user.profile.avatar.url }}" alt="Avatar" class="rounded-circle mb-3" width="150" height="150">
+                {% else %}
+                    <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                        <span class="text-white fs-4">{{ user.username|first|upper }}</span>
+                    </div>
+                {% endif %}
+
+                <h4>{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted">@{{ user.username }}</p>
+
+                {% if user.is_researcher %}
+                    <span class="badge bg-success mb-2">Исследователь</span>
+                {% endif %}
+
+                {% if user.is_verified %}
+                    <span class="badge bg-info mb-2">Подтвержден</span>
+                {% endif %}
+
+                <div class="mt-3">
+                    <a href="{% url 'users:profile_edit' %}" class="btn btn-outline-primary btn-sm">Редактировать профиль</a>
+                    <a href="{% url 'posts:create_post' %}" class="btn btn-primary btn-sm ms-2">Новая публикация</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о профиле -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Информация о профиле</h6>
+            </div>
+            <div class="card-body">
+                <!-- Основная информация -->
+                <div class="mb-3">
+                    <strong>Email:</strong><br>
+                    <span class="text-muted">{{ user.email|default:"Не указан" }}</span>
+                </div>
+
+                {% if user.orcid_id %}
+                <div class="mb-3">
+                    <strong>ORCID ID:</strong><br>
+                    <span class="text-muted">{{ user.orcid_id }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.profile.institution %}
+                <div class="mb-3">
+                    <strong>Учреждение:</strong><br>
+                    <span class="text-muted">{{ user.profile.institution }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.profile.location %}
+                <div class="mb-3">
+                    <strong>Местоположение:</strong><br>
+                    <span class="text-muted">{{ user.profile.location }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.profile.phone %}
+                <div class="mb-3">
+                    <strong>Телефон:</strong><br>
+                    <span class="text-muted">{{ user.profile.phone }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Научные метрики -->
+                <div class="mb-3">
+                    <strong>Научные метрики:</strong><br>
+                    <span class="text-muted">
+                        Цитирования: {{ user.profile.citations_count }}<br>
+                        Индекс Хирша: {{ user.profile.h_index }}
+                    </span>
+                </div>
+
+                <!-- Научные интересы -->
+                {% if user.profile.scientific_fields.all %}
+                <div class="mb-3">
+                    <strong>Научные интересы:</strong><br>
+                    <div class="mt-1">
+                        {% for field in user.profile.scientific_fields.all %}
+                            <span class="badge bg-light text-dark me-1 mb-1">{{ field.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Биография -->
+                {% if user.profile.bio %}
+                <div class="mb-3">
+                    <strong>Биография:</strong><br>
+                    <span class="text-muted">{{ user.profile.bio|linebreaks }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Дополнительные поля -->
+                {% if user.profile.research_interests %}
+                <div class="mb-3">
+                    <strong>Научные интересы (подробно):</strong><br>
+                    <span class="text-muted">{{ user.profile.research_interests|linebreaks }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.profile.education %}
+                <div class="mb-3">
+                    <strong>Образование:</strong><br>
+                    <span class="text-muted">{{ user.profile.education|linebreaks }}</span>
+                </div>
+                {% endif %}
+
+                {% if user.profile.academic_degree and user.profile.academic_degree != 'none' %}
+                <div class="mb-3">
+                    <strong>Ученая степень:</strong><br>
+                    <span class="text-muted">{{ user.profile.get_academic_degree_display }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Веб-сайт -->
+                {% if user.profile.website %}
+                <div class="mb-3">
+                    <strong>Веб-сайт:</strong><br>
+                    <a href="{{ user.profile.website }}" target="_blank" class="text-decoration-none">
+                        {{ user.profile.website }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- Статистика -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ user.posts.count }}</h5>
+                        <small class="text-muted">Публикаций</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ user.get_friends_count }}</h5>
+                        <small class="text-muted">Друзей</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ user.communities_joined.count }}</h5>
+                        <small class="text-muted">Сообществ</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ user.post_comments.count }}</h5>
+                        <small class="text-muted">Комментариев</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Лента публикаций пользователя -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Мои публикации</h5>
+                <a href="{% url 'posts:create_post' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Новая публикация
+                </a>
+            </div>
+            <div class="card-body">
+                {% if user.posts.all %}
+                    {% for post in user.posts.all %}
+                    <div class="card mb-3 border-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">
+                                    <a href="{% url 'posts:post_detail' post.id %}" class="text-decoration-none text-dark">
+                                        {{ post.title }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+
+                            <p class="card-text text-muted small mb-2">
+                                {{ post.content|truncatewords:30 }}
+                            </p>
+
+                            <div class="d-flex gap-3 small align-items-center">
+                                <span class="text-muted">
+                                    <i class="fas fa-heart"></i> {{ post.like_count }}
+                                </span>
+                                <span class="text-muted">
+                                    <i class="fas fa-comment"></i> {{ post.comment_count }}
+                                </span>
+                                <span class="badge bg-secondary">{{ post.get_post_type_display }}</span>
+                                {% if post.scientific_field %}
+                                <span class="badge bg-light text-dark">{{ post.scientific_field.name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-edit fa-3x"></i>
+                        </div>
+                        <p class="text-muted">У вас пока нет публикаций</p>
+                        <a href="{% url 'posts:create_post' %}" class="btn btn-primary">Создать первую публикацию</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

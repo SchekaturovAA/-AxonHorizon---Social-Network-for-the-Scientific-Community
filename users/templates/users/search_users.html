@@ -1,0 +1,81 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Поиск пользователей</h4>
+            </div>
+            <div class="card-body">
+                <!-- Форма поиска -->
+                <form method="GET" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Введите имя, фамилию или username..." value="{{ query }}">
+                        <button type="submit" class="btn btn-primary">Найти</button>
+                    </div>
+                </form>
+
+                <!-- Результаты поиска -->
+                {% if query %}
+                    {% if users %}
+                    <h5>Результаты поиска для "{{ query }}"</h5>
+                    <div class="row">
+                        {% for user in users %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            {% if user.profile.avatar %}
+                                                <img src="{{ user.profile.avatar.url }}" alt="Avatar" class="rounded-circle" width="50" height="50">
+                                            {% else %}
+                                                <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                    <span class="text-white">{{ user.username|first|upper }}</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-0">
+                                                <a href="{% url 'users:user_profile' user.username %}" class="text-decoration-none">
+                                                    {{ user.get_full_name|default:user.username }}
+                                                </a>
+                                            </h6>
+                                            <p class="text-muted small mb-1">@{{ user.username }}</p>
+                                            {% if user.profile.institution %}
+                                            <p class="text-muted small mb-0">{{ user.profile.institution }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            {% if user.is_authenticated and user.id != user.id %}
+                                            <div class="btn-group-vertical">
+                                                <a href="{% url 'users:user_profile' user.username %}" class="btn btn-outline-primary btn-sm mb-1">Профиль</a>
+                                                <a href="{% url 'chats:create_personal_chat' user.id %}" class="btn btn-outline-success btn-sm">
+                                                    <i class="fas fa-comment"></i> Чат
+                                                </a>
+                                            </div>
+                                            {% else %}
+                                            <a href="{% url 'users:user_profile' user.username %}" class="btn btn-outline-primary btn-sm">Профиль</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">Пользователи не найдены</p>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">Введите запрос для поиска пользователей</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

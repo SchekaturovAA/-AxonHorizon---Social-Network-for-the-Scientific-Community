@@ -1,0 +1,199 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">Сообщества</h4>
+                <a href="{% url 'communities:community_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Создать сообщество
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Кнопка для показа/скрытия моих сообществ -->
+                {% if user_communities %}
+                <div class="mb-4">
+                    <button class="btn btn-outline-primary w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#myCommunitiesCollapse" aria-expanded="false" aria-controls="myCommunitiesCollapse">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-users me-2"></i>
+                                Мои сообщества
+                                <span class="badge bg-primary ms-2">{{ user_communities.count }}</span>
+                            </span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </button>
+
+                    <!-- Скрываемая панель с моими сообществами -->
+                    <div class="collapse mt-3" id="myCommunitiesCollapse">
+                        <div class="row">
+                            {% for community in user_communities %}
+                            <div class="col-md-4 mb-4">
+                                <div class="card h-100 community-card">
+                                    {% if community.avatar %}
+                                    <img src="{{ community.avatar.url }}" class="card-img-top" alt="{{ community.name }}" style="height: 150px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 150px;">
+                                        <span class="text-white fs-3">{{ community.name|first|upper }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title">
+                                            <a href="{% url 'communities:community_detail' community.id %}" class="text-decoration-none">
+                                                {{ community.name }}
+                                            </a>
+                                        </h5>
+                                        <p class="card-text text-muted small flex-grow-1">
+                                            {{ community.short_description|default:community.description|truncatewords:15 }}
+                                        </p>
+                                        <div class="mt-auto">
+                                            <div class="d-flex justify-content-between text-muted small">
+                                                <span>👥 {{ community.member_count }}</span>
+                                                <span>📝 {{ community.post_count }}</span>
+                                            </div>
+                                            {% if community.scientific_field %}
+                                            <span class="badge bg-light text-dark mt-2">{{ community.scientific_field.name }}</span>
+                                            {% endif %}
+
+                                            <!-- Индикатор роли пользователя - ИСПРАВЛЕННАЯ ЧАСТЬ -->
+                                            {% for membership in community.communitymembership_set.all %}
+                                                {% if membership.user == request.user %}
+                                                    {% if membership.role == 'admin' %}
+                                                    <span class="badge bg-danger mt-1">Админ</span>
+                                                    {% elif membership.role == 'moderator' %}
+                                                    <span class="badge bg-warning text-dark mt-1">Модератор</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Все сообщества -->
+                <div>
+                    <h5 class="mb-4">
+                        Все сообщества
+                        <small class="text-muted">({{ communities.count }})</small>
+                    </h5>
+
+                    {% if communities %}
+                    <div class="row">
+                        {% for community in communities %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 community-card">
+                                {% if community.avatar %}
+                                <img src="{{ community.avatar.url }}" class="card-img-top" alt="{{ community.name }}" style="height: 150px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 150px;">
+                                    <span class="text-white fs-3">{{ community.name|first|upper }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'communities:community_detail' community.id %}" class="text-decoration-none">
+                                            {{ community.name }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text text-muted small flex-grow-1">
+                                        {{ community.short_description|default:community.description|truncatewords:15 }}
+                                    </p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between text-muted small">
+                                            <span>👥 {{ community.members_count }}</span>
+                                            <span>📝 {{ community.posts_count }}</span>
+                                            <span class="badge bg-secondary">{{ community.get_community_type_display }}</span>
+                                        </div>
+
+                                        <!-- Статус подписки -->
+                                        {% if community in user_communities %}
+                                        <span class="badge bg-success mt-2">Вы участник</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-muted">Сообществ пока нет</p>
+                        <a href="{% url 'communities:community_create' %}" class="btn btn-primary">Создать первое сообщество</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.community-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.community-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Стили для кнопки аккордеона */
+.btn-outline-primary[aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+}
+
+.btn-outline-primary .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+/* Анимация появления контента */
+.collapse.show {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+
+<script>
+// Добавляем индикатор состояния аккордеона
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseElement = document.getElementById('myCommunitiesCollapse');
+    const button = document.querySelector('[data-bs-target="#myCommunitiesCollapse"]');
+
+    if (collapseElement && button) {
+        collapseElement.addEventListener('show.bs.collapse', function () {
+            button.setAttribute('aria-expanded', 'true');
+        });
+
+        collapseElement.addEventListener('hide.bs.collapse', function () {
+            button.setAttribute('aria-expanded', 'false');
+        });
+
+        // Сохраняем состояние в localStorage
+        button.addEventListener('click', function() {
+            const isExpanded = button.getAttribute('aria-expanded') === 'true';
+            localStorage.setItem('myCommunitiesExpanded', !isExpanded);
+        });
+
+        // Восстанавливаем состояние из localStorage
+        const savedState = localStorage.getItem('myCommunitiesExpanded');
+        if (savedState === 'true') {
+            const bsCollapse = new bootstrap.Collapse(collapseElement, {
+                toggle: false
+            });
+            bsCollapse.show();
+        }
+    }
+});
+</script>
+{% endblock %}

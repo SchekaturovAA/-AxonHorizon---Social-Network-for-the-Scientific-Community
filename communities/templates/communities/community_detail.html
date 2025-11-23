@@ -1,0 +1,240 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Баннер сообщества -->
+        {% if community.banner %}
+        <div class="card mb-4">
+            <img src="{{ community.banner.url }}" class="card-img-top" alt="Баннер {{ community.name }}" style="max-height: 300px; object-fit: cover;">
+        </div>
+        {% endif %}
+
+        <!-- Информация о сообществе -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    {% if community.avatar %}
+                    <img src="{{ community.avatar.url }}" alt="Avatar" class="rounded me-4" width="80" height="80">
+                    {% else %}
+                    <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-4" style="width: 80px; height: 80px;">
+                        <span class="text-white fs-4">{{ community.name|first|upper }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h1 class="card-title h3">{{ community.name }}</h1>
+                        <p class="card-text text-muted">{{ community.short_description }}</p>
+                        <div class="d-flex gap-3 text-muted small">
+                            <span>👥 {{ community.member_count }} участников</span>
+                            <span>📝 {{ community.post_count }} публикаций</span>
+                            <span class="badge bg-secondary">{{ community.get_community_type_display }}</span>
+                            {% if community.scientific_field %}
+                            <span class="badge bg-light text-dark">{{ community.scientific_field.name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Кнопки управления -->
+                <div class="mt-3">
+                    {% if is_member %}
+                        <form method="POST" action="{% url 'communities:community_leave' community.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Покинуть сообщество</button>
+                        </form>
+                        
+                        {% if can_edit %}
+                        <a href="{% url 'communities:community_edit' community.id %}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
+                        {% endif %}
+                        
+                        {% if can_manage_members %}
+                        <a href="{% url 'communities:community_members' community.id %}" class="btn btn-outline-secondary btn-sm">Управление участниками</a>
+                        {% endif %}
+                    {% else %}
+                        <form method="POST" action="{% url 'communities:community_join' community.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary btn-sm">Вступить в сообщество</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Описание сообщества -->
+        {% if community.description %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Описание сообщества</h5>
+            </div>
+            <div class="card-body">
+                {{ community.description|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Правила сообщества -->
+        {% if community.rules %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Правила сообщества</h5>
+            </div>
+            <div class="card-body">
+                {{ community.rules|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Форма создания поста (только для участников) -->
+        {% if is_member %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Создать публикацию</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'communities:create_community_post' community.id %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_title" class="form-label">Заголовок</label>
+                        <input type="text" name="title" class="form-control" id="id_title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_content" class="form-label">Содержание</label>
+                        <textarea name="content" class="form-control" id="id_content" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_post_type" class="form-label">Тип публикации</label>
+                        <select name="post_type" class="form-control" id="id_post_type">
+                            <option value="discussion">Обсуждение</option>
+                            <option value="article">Исследовательская статья</option>
+                            <option value="preprint">Препринт</option>
+                            <option value="question">Вопрос</option>
+                            <option value="news">Новость</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Опубликовать</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Лента публикаций сообщества -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Публикации сообщества</h5>
+            </div>
+            <div class="card-body">
+                {% if posts %}
+                    {% for post in posts %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">
+                                    <a href="{% url 'posts:post_detail' post.id %}" class="text-decoration-none">
+                                        {{ post.title }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            
+                            <p class="card-text text-muted small mb-2">
+                                {{ post.content|truncatewords:30|urlize|linebreaksbr }}
+                            </p>
+                            
+                            <div class="d-flex gap-3 small text-muted align-items-center">
+                                <span>
+                                    Автор: 
+                                    <a href="{% url 'users:user_profile' post.author.username %}" class="text-decoration-none">
+                                        {{ post.author.get_full_name|default:post.author.username }}
+                                    </a>
+                                </span>
+                                <span>❤️ {{ post.like_count }}</span>
+                                <span>💬 {{ post.comment_count }}</span>
+                                <span class="badge bg-secondary">{{ post.get_post_type_display }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">В этом сообществе пока нет публикаций</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Информация о создателе -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Создатель сообщества</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-2">
+                    {% if community.created_by.profile.avatar %}
+                        <img src="{{ community.created_by.profile.avatar.url }}" alt="Avatar" class="rounded-circle" width="60" height="60">
+                    {% else %}
+                        <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <span class="text-white">{{ community.created_by.username|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <h6>
+                    <a href="{% url 'users:user_profile' community.created_by.username %}" class="text-decoration-none">
+                        {{ community.created_by.get_full_name|default:community.created_by.username }}
+                    </a>
+                </h6>
+                <p class="text-muted small">@{{ community.created_by.username }}</p>
+            </div>
+        </div>
+
+        <!-- Контактная информация -->
+        {% if community.website or community.contact_email %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Контактная информация</h5>
+            </div>
+            <div class="card-body">
+                {% if community.website %}
+                <div class="mb-2">
+                    <strong>Веб-сайт:</strong><br>
+                    <a href="{{ community.website }}" target="_blank" class="text-decoration-none">{{ community.website }}</a>
+                </div>
+                {% endif %}
+                
+                {% if community.contact_email %}
+                <div class="mb-2">
+                    <strong>Email:</strong><br>
+                    <a href="mailto:{{ community.contact_email }}" class="text-decoration-none">{{ community.contact_email }}</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Статистика -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Статистика</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h5 class="text-primary">{{ community.member_count }}</h5>
+                        <small class="text-muted">Участников</small>
+                    </div>
+                    <div class="col-6">
+                        <h5 class="text-primary">{{ community.post_count }}</h5>
+                        <small class="text-muted">Публикаций</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">Создано: {{ community.created_at|date:"d.m.Y" }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <!-- Блок профиля -->
+        <div class="card">
+            <div class="card-body text-center">
+                {% if profile_user.profile.avatar %}
+                    <img src="{{ profile_user.profile.avatar.url }}" alt="Avatar" class="rounded-circle mb-3" width="150" height="150">
+                {% else %}
+                    <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                        <span class="text-white fs-4">{{ profile_user.username|first|upper }}</span>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ profile_user.get_full_name|default:profile_user.username }}</h4>
+                <p class="text-muted">@{{ profile_user.username }}</p>
+                
+                {% if profile_user.is_researcher %}
+                    <span class="badge bg-success mb-2">Исследователь</span>
+                {% endif %}
+                
+                {% if profile_user.is_verified %}
+                    <span class="badge bg-info mb-2">Подтвержден</span>
+                {% endif %}
+                
+                <!-- Кнопки дружбы и чата -->
+                {% if user.is_authenticated and user != profile_user %}
+                    <div class="mt-3">
+                        {% if friendship_status == 'friends' %}
+                            <form method="POST" action="{% url 'users:remove_friend' profile_user.username %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Удалить из друзей</button>
+                            </form>
+                        {% elif friendship_status == 'request_sent' %}
+                            <form method="POST" action="{% url 'users:cancel_friend_request' profile_user.username %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Отменить запрос</button>
+                            </form>
+                        {% elif friendship_status == 'request_received' %}
+                            <div class="btn-group" role="group">
+                                <form method="POST" action="{% url 'users:accept_friend_request' profile_user.username %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">Принять</button>
+                                </form>
+                                <form method="POST" action="{% url 'users:reject_friend_request' profile_user.username %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Отклонить</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <form method="POST" action="{% url 'users:send_friend_request' profile_user.username %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">Добавить в друзья</button>
+                            </form>
+                        {% endif %}
+
+                        <!-- Кнопка "Начать чат" - ВСЕГДА отображается -->
+                        <a href="{% url 'chats:create_personal_chat' profile_user.id %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-comment"></i> Начать чат
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Информация о профиле -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Информация о профиле</h6>
+            </div>
+            <div class="card-body">
+                <!-- Та же структура, что и в profile.html -->
+                {% if profile_user.email %}
+                <div class="mb-3">
+                    <strong>Email:</strong><br>
+                    <span class="text-muted">{{ profile_user.email }}</span>
+                </div>
+                {% endif %}
+
+                {% if profile_user.profile.institution %}
+                <div class="mb-3">
+                    <strong>Учреждение:</strong><br>
+                    <span class="text-muted">{{ profile_user.profile.institution }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Добавьте остальные поля по аналогии -->
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- Статистика -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ posts_count }}</h5>
+                        <small class="text-muted">Публикаций</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ friends_count }}</h5>
+                        <small class="text-muted">Друзей</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ profile_user.communities_joined.count }}</h5>
+                        <small class="text-muted">Сообществ</small>
+                    </div>
+                    <div class="col-3">
+                        <h5 class="text-primary">{{ profile_user.post_comments.count }}</h5>
+                        <small class="text-muted">Комментариев</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Публикации пользователя -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Публикации</h5>
+            </div>
+            <div class="card-body">
+                {% if profile_user.posts.all %}
+                    {% for post in profile_user.posts.all %}
+                    <div class="card mb-3 border-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <a href="{% url 'posts:post_detail' post.id %}" class="text-decoration-none text-dark">
+                                    {{ post.title }}
+                                </a>
+                            </h6>
+                            <p class="card-text text-muted small mb-2">
+                                {{ post.content|truncatewords:30|urlize|linebreaksbr }}
+                            </p>
+                            <div class="d-flex gap-3 small text-muted">
+                                <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
+                                <span>❤️ {{ post.like_count }}</span>
+                                <span>💬 {{ post.comment_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">Пользователь еще не создал публикаций</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

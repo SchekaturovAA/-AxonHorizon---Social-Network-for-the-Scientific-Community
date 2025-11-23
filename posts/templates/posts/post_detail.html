@@ -1,0 +1,112 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <!-- Пост -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4 class="card-title">{{ post.title }}</h4>
+                        <p class="text-muted mb-0">
+                            <strong>{{ post.author.get_full_name|default:post.author.username }}</strong> • 
+                            {{ post.created_at|date:"d.m.Y H:i" }} • 
+                            <span class="badge bg-secondary">{{ post.get_post_type_display }}</span>
+                        </p>
+                    </div>
+                    {% if post.author == user %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            ⋮
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'posts:delete_post' post.id %}">Удалить</a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <p class="card-text">{{ post.content|linebreaks }}</p>
+                
+                {% if post.scientific_field %}
+                <p class="text-muted">
+                    <small>Научная область: {{ post.scientific_field.name }}</small>
+                </p>
+                {% endif %}
+                
+                <div class="d-flex gap-3 mt-3">
+                    <button class="btn btn-outline-primary btn-sm like-btn" data-post-id="{{ post.id }}">
+                        ❤️ <span class="like-count">{{ post.like_count }}</span>
+                    </button>
+                    <span class="text-muted">💬 {{ post.comment_count }} комментариев</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Комментарии -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Комментарии</h5>
+            </div>
+            <div class="card-body">
+                <!-- Форма комментария -->
+                <form method="POST" class="mb-4">
+                    {% csrf_token %}
+                    {{ comment_form.content }}
+                    <button type="submit" class="btn btn-primary btn-sm mt-2">Добавить комментарий</button>
+                </form>
+
+                <!-- Список комментариев -->
+                {% for comment in comments %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                        <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <p class="mb-0 mt-1">{{ comment.content|linebreaks }}</p>
+                </div>
+                {% empty %}
+                <p class="text-muted">Пока нет комментариев. Будьте первым!</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// AJAX для лайков
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButtons = document.querySelectorAll('.like-btn');
+    
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const likeCount = this.querySelector('.like-count');
+            
+            fetch(`/posts/${postId}/like/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.liked) {
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                } else {
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-outline-primary');
+                }
+                likeCount.textContent = data.like_count;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

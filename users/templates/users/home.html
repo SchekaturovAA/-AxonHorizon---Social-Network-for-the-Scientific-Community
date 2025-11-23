@@ -1,0 +1,24 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto text-center">
+        <h1 class="display-4">Добро пожаловать в AxonHorizon</h1>
+        <p class="lead">Социальная сеть для научного сообщества</p>
+        
+        {% if user.is_authenticated %}
+            <div class="mt-5">
+                <h3>Привет, {{ user.username }}!</h3>
+                <p>Рады видеть вас снова.</p>
+                <a href="{% url 'users:profile' %}" class="btn btn-primary btn-lg">Мой профиль</a>
+            </div>
+        {% else %}
+            <div class="mt-5">
+                <p>Присоединяйтесь к сообществу исследователей!</p>
+                <a href="{% url 'users:register' %}" class="btn btn-primary btn-lg me-3">Регистрация</a>
+                <a href="{% url 'users:login' %}" class="btn btn-outline-primary btn-lg">Войти</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

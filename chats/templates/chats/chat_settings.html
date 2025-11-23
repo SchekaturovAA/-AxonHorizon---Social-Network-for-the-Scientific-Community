@@ -1,0 +1,83 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-cog"></i> Настройки чата: {{ chat }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Форма редактирования чата -->
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger">
+                                {% for error in field.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                </form>
+
+                <hr class="my-4">
+
+                <!-- Добавление участников -->
+                <h5>Добавить участников</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_members" value="true">
+                    
+                    <div class="mb-3">
+                        {{ add_form.users.label_tag }}
+                        {{ add_form.users }}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Добавить участников</button>
+                </form>
+
+                <hr class="my-4">
+
+                <!-- Список участников -->
+                <h5>Участники чата</h5>
+                <div class="list-group">
+                    {% for member in members %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ member.user.get_full_name|default:member.user.username }}</strong>
+                            <small class="text-muted">({{ member.get_role_display }})</small>
+                            {% if member.user == chat.created_by %}
+                            <span class="badge bg-primary ms-2">Создатель</span>
+                            {% endif %}
+                        </div>
+                        {% if member.user != request.user and member.role != 'admin' %}
+                        <a href="{% url 'chats:remove_member' chat.id member.user.id %}" 
+                           class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('Вы уверены, что хотите удалить этого участника?')">
+                            <i class="fas fa-times"></i> Удалить
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'chats:chat_detail' chat.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Вернуться к чату
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

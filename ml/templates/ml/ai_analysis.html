@@ -1,0 +1,532 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}AI для анализа - AxonHorizon{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Заголовок -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-robot text-primary me-2"></i>
+                    AI для анализа научных данных
+                </h1>
+                <div class="badge bg-primary">Beta</div>
+            </div>
+            
+            <!-- Описание -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <p class="mb-2">Используйте искусственный интеллект для анализа ваших научных экспериментов.</p>
+                    <p class="mb-0 text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        AI поможет выявить закономерности, построить модели и сделать научные выводы
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка - Форма -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-flask me-2"></i>
+                        Данные эксперимента
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="ai-analysis-form">
+                        {% csrf_token %}
+                        
+                        <!-- Тип эксперимента -->
+                        <div class="mb-3">
+                            <label for="experiment_type" class="form-label">Тип эксперимента</label>
+                            <select class="form-select" id="experiment_type">
+                                <option value="chemical">Химический</option>
+                                <option value="biological">Биологический</option>
+                                <option value="physical">Физический</option>
+                                <option value="engineering">Инженерный</option>
+                                <option value="other">Другой</option>
+                            </select>
+                        </div>
+
+                        <!-- Название эксперимента -->
+                        <div class="mb-3">
+                            <label for="experiment_name" class="form-label">Название эксперимента</label>
+                            <input type="text" class="form-control" id="experiment_name" 
+                                   placeholder="Например: Зависимость скорости реакции от температуры">
+                        </div>
+
+                        <!-- Данные эксперимента -->
+                        <div class="mb-3">
+                            <label for="experiment_data" class="form-label">
+                                Данные эксперимента
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="experiment_data" rows="6" 
+                                      placeholder="Введите данные в структурированном виде..." required></textarea>
+                            <div class="form-text">
+                                Пример: <code>Температура: [20,25,30,35,40]°C | Скорость реакции: [1.2,1.8,2.5,3.1,3.8] моль/с</code>
+                            </div>
+                        </div>
+
+                        <!-- Научный вопрос -->
+                        <div class="mb-3">
+                            <label for="research_question" class="form-label">
+                                Научный вопрос
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="research_question" rows="3" 
+                                      placeholder="Сформулируйте вопрос для анализа..." required></textarea>
+                            <div class="form-text">
+                                Пример: <code>Проанализируйте зависимость скорости реакции от температуры и предложите математическую модель</code>
+                            </div>
+                        </div>
+
+                        <!-- Дополнительные параметры -->
+                        <div class="mb-3">
+                            <label class="form-label">Дополнительные параметры</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_statistics" checked>
+                                <label class="form-check-label" for="include_statistics">
+                                    Включить статистический анализ
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include_recommendations" checked>
+                                <label class="form-check-label" for="include_recommendations">
+                                    Включить рекомендации
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Кнопка отправки -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="analyze-btn">
+                                <i class="fas fa-play me-2"></i>
+                                Начать анализ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка - Результат -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Результат анализа
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Состояние до анализа -->
+                    <div id="initial-state" class="text-center py-5">
+                        <i class="fas fa-microscope fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Здесь появится результат анализа</h5>
+                        <p class="text-muted small">Заполните форму и нажмите "Начать анализ"</p>
+                    </div>
+
+                    <!-- Индикатор загрузки -->
+                    <div id="loading-state" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <h5 class="text-primary">AI анализирует данные...</h5>
+                        <p class="text-muted small">Это может занять несколько секунд</p>
+                    </div>
+
+                    <!-- Результат анализа -->
+                    <div id="analysis-result" style="display: none;"></div>
+
+                    <!-- Ошибка -->
+                    <div id="error-state" class="alert alert-danger" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span id="error-message"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Примеры экспериментов -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Примеры экспериментов
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border">
+                                <div class="card-body">
+                                    <h6 class="card-title">Химическая кинетика</h6>
+                                    <p class="card-text small">Анализ зависимости скорости реакции от концентрации реагентов</p>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="loadExample('chemical')">
+                                        Использовать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border">
+                                <div class="card-body">
+                                    <h6 class="card-title">Биологический рост</h6>
+                                    <p class="card-text small">Анализ роста микроорганизмов в зависимости от условий</p>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="loadExample('biological')">
+                                        Использовать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border">
+                                <div class="card-body">
+                                    <h6 class="card-title">Физическое движение</h6>
+                                    <p class="card-text small">Анализ траектории и кинематики движения тел</p>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="loadExample('physical')">
+                                        Использовать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analysis-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .result-card {
+        border-left: 4px solid #28a745;
+        background-color: #f8f9fa;
+    }
+    
+    .code-example {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+    
+    .analysis-text {
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log('=== НАЧАЛО ЗАГРУЗКИ СКРИПТА AI АНАЛИЗА ===');
+
+// 1. Функция для загрузки примеров экспериментов
+function loadExample(type) {
+    console.log('Загрузка примера типа:', type);
+
+    const examples = {
+        chemical: {
+            name: "Химическая кинетика",
+            data: "Температура: [20, 25, 30, 35, 40] °C\nСкорость реакции: [1.2, 1.8, 2.5, 3.1, 3.8] моль/с",
+            question: "Проанализируйте зависимость скорости химической реакции от температуры"
+        },
+        biological: {
+            name: "Биологический рост",
+            data: "Время: [0, 24, 48, 72, 96] часов\nКоличество бактерий: [100, 200, 400, 800, 1600] клеток/мл",
+            question: "Проанализируйте рост бактериальной культуры во времени"
+        },
+        physical: {
+            name: "Физическое движение",
+            data: "Время: [0, 1, 2, 3, 4, 5] секунд\nПройденный путь: [0, 5, 20, 45, 80, 125] метров",
+            question: "Проанализируйте движение тела и определите тип движения"
+        }
+    };
+
+    const example = examples[type];
+    if (example) {
+        document.getElementById('experiment_name').value = example.name;
+        document.getElementById('experiment_data').value = example.data;
+        document.getElementById('research_question').value = example.question;
+        console.log('Пример загружен:', type);
+    }
+}
+
+// 2. Основная функция отправки формы
+async function submitForm(event) {
+    console.log('Отправка формы анализа...');
+    event.preventDefault();
+
+    try {
+        // Получаем данные формы
+        const experimentData = document.getElementById('experiment_data').value.trim();
+        const researchQuestion = document.getElementById('research_question').value.trim();
+
+        // Валидация обязательных полей
+        if (!experimentData || !researchQuestion) {
+            showError('Заполните все обязательные поля (данные эксперимента и научный вопрос)');
+            return;
+        }
+
+        // Показываем состояние загрузки
+        showLoadingState();
+
+        // Получаем CSRF токен
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (!csrfToken) {
+            throw new Error('CSRF токен не найден. Обновите страницу.');
+        }
+
+        console.log('Подготовка данных для отправки...');
+
+        // Формируем данные для отправки
+        const requestData = {
+            experiment_data: experimentData,
+            research_question: researchQuestion
+        };
+
+        console.log('Отправка запроса на сервер...');
+
+        // ВАЖНОЕ ИСПРАВЛЕНИЕ: Используем правильный путь из вашей конфигурации
+        // Из ошибки видно, что правильный путь должен быть /api/ml/analyze/
+        const response = await fetch('/api/ml/analyze/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        console.log('Получен ответ, статус:', response.status);
+
+        // Проверяем HTTP статус
+        if (!response.ok) {
+            let errorMessage = `Ошибка сервера: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.detail || errorMessage;
+            } catch (e) {
+                // Если не удалось распарсить JSON, используем стандартное сообщение
+            }
+            throw new Error(errorMessage);
+        }
+
+        // Парсим ответ
+        const result = await response.json();
+        console.log('Успешный ответ от сервера:', result);
+
+        // Показываем результат
+        showResult(result);
+
+    } catch (error) {
+        console.error('Критическая ошибка:', error);
+        showError('Ошибка при анализе данных: ' + error.message);
+    }
+}
+
+// 3. Функция показа состояния загрузки
+function showLoadingState() {
+    document.getElementById('initial-state').style.display = 'none';
+    document.getElementById('analysis-result').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    document.getElementById('loading-state').style.display = 'block';
+
+    // Делаем кнопку неактивной
+    const analyzeBtn = document.getElementById('analyze-btn');
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Анализируем...';
+}
+
+// 4. Функция показа результата
+function showResult(result) {
+    console.log('Отображение результата анализа');
+
+    // Скрываем загрузку
+    document.getElementById('loading-state').style.display = 'none';
+
+    // Восстанавливаем кнопку
+    const analyzeBtn = document.getElementById('analyze-btn');
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<i class="fas fa-play me-2"></i>Начать анализ';
+
+    // Обрабатываем ошибки
+    if (result.success === false) {
+        showError(result.error || 'Произошла неизвестная ошибка при анализе');
+        return;
+    }
+
+    if (!result.analysis) {
+        showError('Сервер не вернул результаты анализа');
+        return;
+    }
+
+    const resultDiv = document.getElementById('analysis-result');
+
+    // Форматируем результат анализа
+    const analysisText = result.analysis;
+    const formattedAnalysis = formatAnalysisText(analysisText);
+
+    // Создаем HTML для результата
+    let resultHTML = `
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle me-2"></i>Анализ успешно завершен!</h5>
+        </div>
+
+        <div class="card result-card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Результаты анализа
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="analysis-text">${formattedAnalysis}</div>
+            </div>
+        </div>
+    `;
+
+    // Добавляем информацию о модели, если есть
+    if (result.model_used) {
+        resultHTML += `
+            <div class="mt-3 text-center">
+                <small class="text-muted">
+                    <i class="fas fa-robot me-1"></i>
+                    Анализ выполнен с использованием: ${result.model_used}
+                </small>
+            </div>
+        `;
+    }
+
+    resultDiv.innerHTML = resultHTML;
+    resultDiv.style.display = 'block';
+}
+
+// 5. Функция форматирования текста анализа
+function formatAnalysisText(text) {
+    if (!text) return '<p class="text-muted">Нет данных для отображения</p>';
+
+    // Заменяем переносы строк на HTML теги
+    let formatted = text
+        .replace(/\n\s*\n/g, '</p><p>') // Двойные переносы - новые параграфы
+        .replace(/\n/g, '<br>') // Одиночные переносы - br
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Жирный текст
+        .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Курсив
+
+    // Оборачиваем в параграф, если нужно
+    if (!formatted.startsWith('<p>') && !formatted.startsWith('<')) {
+        formatted = '<p>' + formatted + '</p>';
+    }
+
+    return formatted;
+}
+
+// 6. Функция показа ошибки
+function showError(message) {
+    console.log('Показать ошибку:', message);
+
+    // Скрываем загрузку
+    document.getElementById('loading-state').style.display = 'none';
+
+    // Восстанавливаем кнопку
+    const analyzeBtn = document.getElementById('analyze-btn');
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<i class="fas fa-play me-2"></i>Начать анализ';
+
+    // Показываем ошибку
+    const errorDiv = document.getElementById('error-state');
+    document.getElementById('error-message').textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+// 7. Функция сброса формы
+function resetForm() {
+    document.getElementById('ai-analysis-form').reset();
+    document.getElementById('initial-state').style.display = 'block';
+    document.getElementById('analysis-result').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    document.getElementById('loading-state').style.display = 'none';
+}
+
+// 8. Инициализация после загрузки страницы
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== ДОМ ДОКУМЕНТ ЗАГРУЖЕН ===');
+
+    // Проверяем наличие необходимых элементов
+    const form = document.getElementById('ai-analysis-form');
+    if (!form) {
+        console.error('Форма не найдена!');
+        return;
+    }
+
+    // Добавляем обработчик отправки формы
+    form.addEventListener('submit', submitForm);
+    console.log('Обработчик формы добавлен');
+
+    // Добавляем обработчики для кнопок примеров
+    document.querySelectorAll('.btn-outline-primary').forEach(button => {
+        button.addEventListener('click', function() {
+            const card = this.closest('.card');
+            const title = card.querySelector('.card-title').textContent.trim();
+
+            let type = 'chemical';
+            if (title.includes('Биологический')) type = 'biological';
+            else if (title.includes('Физическое')) type = 'physical';
+
+            console.log('Нажата кнопка примера:', title, '-> тип:', type);
+            loadExample(type);
+        });
+    });
+
+    // Добавляем кнопку сброса формы
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'btn btn-outline-secondary mt-3';
+    resetButton.innerHTML = '<i class="fas fa-redo me-2"></i>Очистить форму';
+    resetButton.onclick = resetForm;
+
+    const formActions = form.querySelector('.d-grid');
+    if (formActions) {
+        formActions.parentNode.insertBefore(resetButton, formActions.nextSibling);
+    }
+
+    console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ЗАВЕРШЕНА ===');
+});
+
+// Делаем функции глобальными для отладки через консоль браузера
+window.loadExample = loadExample;
+window.submitForm = submitForm;
+window.showResult = showResult;
+window.showError = showError;
+window.resetForm = resetForm;
+
+console.log('=== СКРИПТ AI АНАЛИЗА УСПЕШНО ЗАГРУЖЕН ===');
+</script>
+
+
+{% endblock %}
